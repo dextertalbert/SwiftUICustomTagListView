@@ -10,10 +10,10 @@ import SwiftUI
 public struct SwiftUICustomTagView<Content: View>: View, Hashable {
     
     private let id = UUID()
-    @State private var content: Content
+    private let content: Content // Remove @State - content shouldn't change
     
     public init(@ViewBuilder content: () -> Content) {
-        _content = State(initialValue: content())
+        self.content = content()
     }
     
     public var body: some View {
@@ -26,11 +26,5 @@ public struct SwiftUICustomTagView<Content: View>: View, Hashable {
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
-    }
-}
-
-struct SwiftUICustomTagView_Previews: PreviewProvider {
-    static var previews: some View {
-        SwiftUICustomTagView(content: { Text("Sample") })
     }
 }

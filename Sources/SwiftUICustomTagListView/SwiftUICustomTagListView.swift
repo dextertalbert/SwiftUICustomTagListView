@@ -17,8 +17,6 @@ public struct SwiftUICustomTagListView<Content: View>: View {
     /// Vertical space between each tag
     private let verticalSpace: CGFloat
     
-    @State private var listHeight: CGFloat = 0
-    
     public init(_ views: [SwiftUICustomTagView<Content>],
                 horizontalSpace: CGFloat,
                 verticalSpace: CGFloat) {
@@ -28,52 +26,48 @@ public struct SwiftUICustomTagListView<Content: View>: View {
     }
     
     public var body: some View {
-        GeometryReader { geometry in
-            generateTags(geometry, views: tagViews)
-                .background(GeometryReader { geo in
-                    Color(.clear)
-                        .onAppear {
-                            self.listHeight = geo.size.height
-                        }
-                })
-        }
-        .frame(height: listHeight)
+        // Remove the problematic GeometryReader and fixed frame height
+        generateTags(views: tagViews)
     }
     
-    // ref: https://reona.dev/posts/20200929
-    private func generateTags(_ geometry: GeometryProxy,
-                              views: [SwiftUICustomTagView<Content>]) -> some View {
+    private func generateTags(views: [SwiftUICustomTagView<Content>]) -> some View {
         var width = CGFloat.zero
         var height = CGFloat.zero
-     
-        return ZStack(alignment: .topLeading) {
-            ForEach(views, id: \.self) { view in
-                view
-                    .padding(.trailing, horizontalSpace)
-                    .alignmentGuide(.leading, computeValue: { dimension in
-                        if abs(width - dimension.width) > geometry.size.width {
-                            width = 0
-                            height -= dimension.height + verticalSpace
+        
+        return GeometryReader { geometry in
+            ZStack(alignment: .topLeading) {
+                ForEach(views, id: \.self) { view in
+                    view
+                        .padding(.trailing, horizontalSpace)
+                        .alignmentGuide(.leading) { dimension in
+                            // Keep original width logic but fix the overflow check
+                            if abs(width - dimension.width) > geometry.size.width {
+                                width = 0
+                                height += dimension.height + verticalSpace
+                            }
+                            let result = width
+                            if view == views.last {
+                                width = 0
+                            } else {
+                                width -= dimension.width // Keep original logic
+                            }
+                            return result
                         }
-                        let result = width
-                        if view == views.last {
-                            width = 0
-                        } else {
-                            width -= dimension.width
+                        .alignmentGuide(.top) { dimension in
+                            let result = height
+                            if view == views.last {
+                                height = 0 // Reset for next layout pass
+                            }
+                            return result
                         }
-                        return result
-                    })
-                    .alignmentGuide(.top, computeValue: { dimension in
-                        let result = height
-                        if view == views.last {
-                            height = 0
-                        }
-                        return result
-                    })
+                }
             }
         }
+        // Let SwiftUI determine the height naturally
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
+
 
 // MARK: - Sample
 struct SwiftUICustomTagListView_Previews: PreviewProvider {
